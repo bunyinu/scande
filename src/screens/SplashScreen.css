@@ -1,0 +1,265 @@
+.splash-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #000000 0%, #1a0000 50%, #000000 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.splash-content {
+  text-align: center;
+  z-index: 10;
+  opacity: 0;
+  transform: translateY(50px);
+  transition: all 1.5s ease-out;
+}
+
+.splash-content.fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.skull-logo {
+  font-size: 120px;
+  margin-bottom: 20px;
+  animation: pulse-skull 3s infinite;
+}
+
+@keyframes pulse-skull {
+  0%, 100% { 
+    transform: scale(1);
+    filter: drop-shadow(0 0 20px #ff0000);
+  }
+  50% { 
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 40px #ff0000);
+  }
+}
+
+.app-title {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #ff0000;
+  margin-bottom: 20px;
+  letter-spacing: 8px;
+  text-shadow: 0 0 30px #ff0000;
+  animation: glow-text 2s infinite alternate;
+}
+
+@keyframes glow-text {
+  from { text-shadow: 0 0 30px #ff0000; }
+  to { text-shadow: 0 0 50px #ff0000, 0 0 60px #ff0000; }
+}
+
+.tagline {
+  margin-bottom: 40px;
+}
+
+.tagline p {
+  font-size: 1.5rem;
+  color: #ccc;
+  margin: 10px 0;
+}
+
+.subtitle {
+  color: #666 !important;
+  font-size: 1.2rem !important;
+  font-style: italic;
+}
+
+.features-preview {
+  margin: 40px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  max-width: 800px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+  background: rgba(255, 0, 0, 0.1);
+  border-color: rgba(255, 0, 0, 0.6);
+  transform: translateY(-5px);
+}
+
+.feature-icon {
+  font-size: 24px;
+  min-width: 30px;
+}
+
+.loading-section {
+  margin: 40px 0;
+  width: 300px;
+}
+
+.loading-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 15px;
+}
+
+.loading-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #ff0000, #ff6666, #ff0000);
+  animation: loading-animation 2s infinite;
+  width: 100%;
+}
+
+@keyframes loading-animation {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.loading-text {
+  color: #999;
+  font-size: 14px;
+  animation: pulse 2s infinite;
+}
+
+.disclaimer {
+  margin: 30px 0;
+  padding: 20px;
+  background: rgba(255, 255, 0, 0.1);
+  border: 1px solid rgba(255, 255, 0, 0.3);
+  border-radius: 10px;
+  max-width: 400px;
+}
+
+.disclaimer p {
+  color: #ffff99;
+  font-size: 12px;
+  margin: 5px 0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.skip-button, .landing-button {
+  background: transparent;
+  border: 2px solid #666;
+  color: #666;
+  padding: 15px 30px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.skip-button:hover {
+  border-color: #ff0000;
+  color: #ff0000;
+  background: rgba(255, 0, 0, 0.1);
+}
+
+.landing-button {
+  border-color: #9966ff;
+  color: #9966ff;
+}
+
+.landing-button:hover {
+  border-color: #7744cc;
+  color: #7744cc;
+  background: rgba(153, 102, 255, 0.1);
+}
+
+.background-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-skull {
+  position: absolute;
+  font-size: 40px;
+  opacity: 0.1;
+  animation: float 10s infinite linear;
+}
+
+.skull-1 {
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.skull-2 {
+  top: 20%;
+  right: 15%;
+  animation-delay: 2s;
+}
+
+.skull-3 {
+  bottom: 30%;
+  left: 20%;
+  animation-delay: 4s;
+}
+
+.skull-4 {
+  bottom: 20%;
+  right: 10%;
+  animation-delay: 6s;
+}
+
+.skull-5 {
+  top: 50%;
+  left: 50%;
+  animation-delay: 8s;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-20px) rotate(360deg);
+    opacity: 0.1;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-title {
+    font-size: 2.5rem;
+    letter-spacing: 4px;
+  }
+  
+  .skull-logo {
+    font-size: 80px;
+  }
+  
+  .features-preview {
+    grid-template-columns: 1fr;
+    margin: 20px;
+  }
+  
+  .tagline p {
+    font-size: 1.2rem;
+  }
+}

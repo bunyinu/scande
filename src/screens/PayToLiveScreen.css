@@ -1,0 +1,339 @@
+.pay-to-live-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #000000 0%, #1a001a 50%, #000000 100%);
+  color: #fff;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.pay-to-live-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 60px;
+}
+
+.header-section {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.page-title {
+  color: #ff0000;
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 30px #ff0000;
+}
+
+.page-subtitle {
+  color: #ccc;
+  font-size: 1.5rem;
+  margin-bottom: 40px;
+}
+
+.current-prediction {
+  display: flex;
+  justify-content: center;
+  gap: 50px;
+  flex-wrap: wrap;
+  padding: 30px;
+  background: rgba(255, 0, 0, 0.1);
+  border: 2px solid #ff0000;
+  border-radius: 15px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.death-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.death-label {
+  color: #999;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.death-date {
+  color: #ff0000;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.days-remaining {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.days-number {
+  color: #fff;
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.days-label {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.packages-section {
+  margin-bottom: 50px;
+}
+
+.packages-title {
+  text-align: center;
+  color: #fff;
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 40px;
+  letter-spacing: 2px;
+}
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.package-card {
+  background: rgba(17, 17, 17, 0.8);
+  border: 2px solid #333;
+  border-radius: 15px;
+  padding: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.package-card:hover {
+  border-color: #ff0000;
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(255, 0, 0, 0.3);
+}
+
+.package-card.selected {
+  border-color: #ff0000;
+  background: rgba(255, 0, 0, 0.1);
+}
+
+.package-card.premium {
+  border-color: #ffd700;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(17, 17, 17, 0.8));
+}
+
+.package-card.premium:hover {
+  border-color: #ffd700;
+  box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+}
+
+.package-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.package-name {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.package-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+}
+
+.price-amount {
+  color: #0f0;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.price-period {
+  color: #666;
+  font-size: 1rem;
+}
+
+.days-added {
+  text-align: center;
+  margin-bottom: 25px;
+  padding: 15px;
+  background: rgba(0, 255, 0, 0.1);
+  border-radius: 10px;
+  border: 1px solid #0f0;
+}
+
+.days-added .days-number {
+  color: #0f0;
+  font-size: 2rem;
+  font-weight: bold;
+  display: block;
+}
+
+.days-added .days-label {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.package-features {
+  margin-bottom: 25px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.feature-icon {
+  color: #0f0;
+  font-weight: bold;
+}
+
+.feature-text {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.purchase-button {
+  width: 100%;
+  background: linear-gradient(135deg, #ff0000, #cc0000);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 15px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.purchase-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #cc0000, #990000);
+  transform: translateY(-2px);
+}
+
+.purchase-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.premium-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #ffd700;
+  color: #000;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.testimonials-section {
+  margin-bottom: 50px;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 15px;
+}
+
+.testimonials-title {
+  text-align: center;
+  color: #fff;
+  font-size: 2rem;
+  margin-bottom: 30px;
+}
+
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+}
+
+.testimonial {
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border-left: 4px solid #0f0;
+}
+
+.testimonial p {
+  color: #ccc;
+  font-style: italic;
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+.testimonial-author {
+  color: #0f0;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.guarantee-section {
+  text-align: center;
+  padding: 40px;
+  background: rgba(255, 255, 0, 0.1);
+  border: 2px solid rgba(255, 255, 0, 0.3);
+  border-radius: 15px;
+  margin-bottom: 40px;
+}
+
+.guarantee-title {
+  color: #ffff99;
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+}
+
+.guarantee-text {
+  color: #ffff99;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+}
+
+.guarantee-disclaimer {
+  color: #999;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.actions-section {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.no-prediction {
+  text-align: center;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  margin-top: 100px;
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .current-prediction {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .packages-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .testimonials-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,301 @@
+.scan-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #000000 0%, #1a0000 50%, #000000 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+}
+
+.camera-section {
+  text-align: center;
+  width: 100%;
+  max-width: 600px;
+}
+
+.scan-title {
+  color: #ff0000;
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 20px #ff0000;
+}
+
+.instructions {
+  color: #ccc;
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+}
+
+.camera-container {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  margin: 0 auto 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #ff0000;
+  box-shadow: 0 0 50px rgba(255, 0, 0, 0.5);
+}
+
+.camera-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror effect */
+}
+
+.face-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.scan-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  border: 2px dashed #ff0000;
+  border-radius: 50%;
+  animation: rotate 4s linear infinite;
+}
+
+.scan-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ff0000, transparent);
+  animation: scan-sweep 2s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes scan-sweep {
+  0%, 100% { transform: translateY(-150px); opacity: 0; }
+  50% { transform: translateY(150px); opacity: 1; }
+}
+
+.face-detected {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 255, 0, 0.2);
+  border: 1px solid #0f0;
+  border-radius: 5px;
+  padding: 5px 10px;
+}
+
+.detection-indicator {
+  color: #0f0;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.scan-button {
+  background: linear-gradient(135deg, #ff0000, #cc0000);
+  border: none;
+  border-radius: 15px;
+  padding: 25px 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(255, 0, 0, 0.3);
+  min-width: 300px;
+}
+
+.scan-button:hover:not(:disabled) {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(255, 0, 0, 0.5);
+}
+
+.scan-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.scan-button-text {
+  display: block;
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.scan-button-subtitle {
+  display: block;
+  color: #ffcccc;
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.scanning-container {
+  text-align: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+.skull-animation {
+  font-size: 150px;
+  animation: skull-pulse 1.5s ease-in-out infinite;
+  margin-bottom: 30px;
+}
+
+@keyframes skull-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    filter: drop-shadow(0 0 30px #ff0000);
+  }
+  50% { 
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 60px #ff0000);
+  }
+}
+
+.scanning-text {
+  color: #ff0000;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  letter-spacing: 3px;
+  animation: glow-text 2s infinite alternate;
+}
+
+.progress-display {
+  margin-bottom: 20px;
+}
+
+.progress-number {
+  color: #fff;
+  font-size: 4rem;
+  font-weight: bold;
+  text-shadow: 0 0 20px #fff;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 40px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff0000, #ff6666, #ff0000);
+  transition: width 0.3s ease;
+  animation: progress-glow 2s infinite;
+}
+
+@keyframes progress-glow {
+  0%, 100% { box-shadow: 0 0 10px #ff0000; }
+  50% { box-shadow: 0 0 20px #ff0000; }
+}
+
+.scan-details {
+  text-align: left;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.scan-step {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  opacity: 0;
+  animation: step-appear 0.5s ease-out forwards;
+}
+
+.scan-step:nth-child(1) { animation-delay: 0.5s; }
+.scan-step:nth-child(2) { animation-delay: 1s; }
+.scan-step:nth-child(3) { animation-delay: 1.5s; }
+.scan-step:nth-child(4) { animation-delay: 2s; }
+.scan-step:nth-child(5) { animation-delay: 2.5s; }
+.scan-step:nth-child(6) { animation-delay: 3s; }
+.scan-step:nth-child(7) { animation-delay: 3.5s; }
+
+@keyframes step-appear {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.step-icon {
+  color: #0f0;
+  font-weight: bold;
+  margin-right: 15px;
+  min-width: 20px;
+}
+
+.step-text {
+  color: #ccc;
+  font-size: 1rem;
+}
+
+.permission-request,
+.permission-denied {
+  text-align: center;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  border: 1px solid rgba(255, 0, 0, 0.3);
+}
+
+.permission-request h2,
+.permission-denied h2 {
+  color: #ff0000;
+  margin-bottom: 20px;
+}
+
+.permission-request p,
+.permission-denied p {
+  color: #ccc;
+  margin-bottom: 30px;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .scan-title {
+    font-size: 2rem;
+  }
+  
+  .camera-container {
+    width: 300px;
+    height: 300px;
+  }
+  
+  .scan-circle {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .skull-animation {
+    font-size: 100px;
+  }
+  
+  .scanning-text {
+    font-size: 1.5rem;
+  }
+  
+  .progress-number {
+    font-size: 3rem;
+  }
+}
