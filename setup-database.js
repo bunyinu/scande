@@ -1,4 +1,4 @@
-// Setup script to create Supabase database tables
+// Automated database setup script for DeathCast
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://aloinmadrxbjfywagtgg.supabase.co';
@@ -6,87 +6,293 @@ const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+const databaseSchema = `
+-- Enable necessary extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Death Predictions Table
+CREATE TABLE IF NOT EXISTS death_predictions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users,
+  death_date TIMESTAMP NOT NULL,
+  cause_of_death TEXT NOT NULL,
+  confidence_percentage DECIMAL(5,2),
+  days_remaining INTEGER,
+  market_id TEXT,
+  risk_factors JSONB DEFAULT '{}',
+  preventable_factor TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Death Markets Table
+CREATE TABLE IF NOT EXISTS death_markets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  prediction_id UUID REFERENCES death_predictions,
+  algorand_market_id TEXT,
+  total_pool DECIMAL(10,2) DEFAULT 0,
+  bet_count INTEGER DEFAULT 0,
+  odds JSONB DEFAULT '{"before": 2.5, "exact": 50.0, "after": 1.8}',
+  status VARCHAR DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Death Bets Table
+CREATE TABLE IF NOT EXISTS death_bets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  market_id UUID REFERENCES death_markets,
+  user_id UUID REFERENCES auth.users,
+  bet_type VARCHAR,
+  amount DECIMAL(10,2),
+  potential_payout DECIMAL(10,2),
+  algorand_tx_id TEXT,
+  status VARCHAR DEFAULT 'active',
+  placed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Life Extensions Table
+CREATE TABLE IF NOT EXISTS life_extensions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users,
+  prediction_id UUID REFERENCES death_predictions,
+  original_death_date TIMESTAMP,
+  new_death_date TIMESTAMP,
+  days_added INTEGER,
+  method VARCHAR,
+  product_id VARCHAR,
+  transaction_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Death Verifications Table
+CREATE TABLE IF NOT EXISTS death_verifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  prediction_id UUID REFERENCES death_predictions,
+  actual_death_date TIMESTAMP,
+  verified_by VARCHAR,
+  verification_source TEXT,
+  confidence_score DECIMAL(3,2) DEFAULT 0.95,
+  payout_triggered BOOLEAN DEFAULT false,
+  oracle_signature TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Digital Legacy Table
+CREATE TABLE IF NOT EXISTS digital_legacies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users,
+  last_words TEXT,
+  digital_assets JSONB DEFAULT '{}',
+  beneficiaries JSONB DEFAULT '[]',
+  funeral_preferences JSONB DEFAULT '{}',
+  voice_recording_url TEXT,
+  delivery_triggered BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- User Subscriptions Table
+CREATE TABLE IF NOT EXISTS user_subscriptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users,
+  product_id VARCHAR NOT NULL,
+  subscription_id VARCHAR,
+  status VARCHAR DEFAULT 'active',
+  started_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
+  revenue_cat_data JSONB DEFAULT '{}'
+);
+
+-- Leaderboard View
+CREATE OR REPLACE VIEW death_leaderboard AS
+SELECT 
+  dp.id,
+  dp.user_id,
+  u.email as user_email,
+  dp.death_date,
+  dp.cause_of_death,
+  dp.confidence_percentage,
+  dp.days_remaining,
+  dm.total_pool,
+  dm.bet_count,
+  dp.created_at
+FROM death_predictions dp
+LEFT JOIN death_markets dm ON dp.id = dm.prediction_id
+LEFT JOIN auth.users u ON dp.user_id = u.id
+ORDER BY dp.confidence_percentage DESC, dm.total_pool DESC;
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_death_predictions_user_id ON death_predictions(user_id);
+CREATE INDEX IF NOT EXISTS idx_death_predictions_death_date ON death_predictions(death_date);
+CREATE INDEX IF NOT EXISTS idx_death_markets_prediction_id ON death_markets(prediction_id);
+CREATE INDEX IF NOT EXISTS idx_death_bets_market_id ON death_bets(market_id);
+CREATE INDEX IF NOT EXISTS idx_death_bets_user_id ON death_bets(user_id);
+CREATE INDEX IF NOT EXISTS idx_life_extensions_user_id ON life_extensions(user_id);
+
+-- Row Level Security (RLS) Policies
+ALTER TABLE death_predictions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE death_markets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE death_bets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE life_extensions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE digital_legacies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Users can only see their own predictions
+DROP POLICY IF EXISTS "Users can view own predictions" ON death_predictions;
+CREATE POLICY "Users can view own predictions" ON death_predictions
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own predictions" ON death_predictions;
+CREATE POLICY "Users can insert own predictions" ON death_predictions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Markets are public for viewing
+DROP POLICY IF EXISTS "Markets are publicly viewable" ON death_markets;
+CREATE POLICY "Markets are publicly viewable" ON death_markets
+  FOR SELECT USING (true);
+
+-- Users can view all bets but only insert their own
+DROP POLICY IF EXISTS "Bets are publicly viewable" ON death_bets;
+CREATE POLICY "Bets are publicly viewable" ON death_bets
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert own bets" ON death_bets;
+CREATE POLICY "Users can insert own bets" ON death_bets
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Users can only access their own life extensions
+DROP POLICY IF EXISTS "Users can view own life extensions" ON life_extensions;
+CREATE POLICY "Users can view own life extensions" ON life_extensions
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own life extensions" ON life_extensions;
+CREATE POLICY "Users can insert own life extensions" ON life_extensions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Users can only access their own digital legacy
+DROP POLICY IF EXISTS "Users can view own digital legacy" ON digital_legacies;
+CREATE POLICY "Users can view own digital legacy" ON digital_legacies
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own digital legacy" ON digital_legacies;
+CREATE POLICY "Users can insert own digital legacy" ON digital_legacies
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own digital legacy" ON digital_legacies;
+CREATE POLICY "Users can update own digital legacy" ON digital_legacies
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Users can only access their own subscriptions
+DROP POLICY IF EXISTS "Users can view own subscriptions" ON user_subscriptions;
+CREATE POLICY "Users can view own subscriptions" ON user_subscriptions
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own subscriptions" ON user_subscriptions;
+CREATE POLICY "Users can insert own subscriptions" ON user_subscriptions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Functions for market operations
+CREATE OR REPLACE FUNCTION update_market_pool(market_id UUID, bet_amount DECIMAL)
+RETURNS void AS $$
+BEGIN
+  UPDATE death_markets 
+  SET 
+    total_pool = total_pool + bet_amount,
+    bet_count = bet_count + 1,
+    updated_at = NOW()
+  WHERE id = market_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to calculate market odds
+CREATE OR REPLACE FUNCTION calculate_market_odds(market_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+  before_bets DECIMAL := 0;
+  exact_bets DECIMAL := 0;
+  after_bets DECIMAL := 0;
+  total_pool DECIMAL := 0;
+  odds JSONB;
+BEGIN
+  SELECT 
+    COALESCE(SUM(CASE WHEN bet_type = 'before' THEN amount ELSE 0 END), 0),
+    COALESCE(SUM(CASE WHEN bet_type = 'exact' THEN amount ELSE 0 END), 0),
+    COALESCE(SUM(CASE WHEN bet_type = 'after' THEN amount ELSE 0 END), 0),
+    COALESCE(SUM(amount), 0)
+  INTO before_bets, exact_bets, after_bets, total_pool
+  FROM death_bets db
+  JOIN death_markets dm ON db.market_id = dm.id
+  WHERE dm.id = market_id;
+  
+  IF total_pool > 0 THEN
+    odds := jsonb_build_object(
+      'before', CASE WHEN before_bets > 0 THEN ROUND((total_pool / before_bets)::numeric, 2) ELSE 2.5 END,
+      'exact', CASE WHEN exact_bets > 0 THEN ROUND((total_pool / exact_bets)::numeric, 2) ELSE 50.0 END,
+      'after', CASE WHEN after_bets > 0 THEN ROUND((total_pool / after_bets)::numeric, 2) ELSE 1.8 END
+    );
+  ELSE
+    odds := '{"before": 2.5, "exact": 50.0, "after": 1.8}'::jsonb;
+  END IF;
+  
+  UPDATE death_markets SET odds = odds WHERE id = market_id;
+  
+  RETURN odds;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to update market odds when bets are placed
+CREATE OR REPLACE FUNCTION trigger_update_odds()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM calculate_market_odds(NEW.market_id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_odds_on_bet ON death_bets;
+CREATE TRIGGER update_odds_on_bet
+  AFTER INSERT ON death_bets
+  FOR EACH ROW
+  EXECUTE FUNCTION trigger_update_odds();
+`;
+
 async function setupDatabase() {
   console.log('🚀 Setting up DeathCast database...');
 
   try {
-    // Create death_predictions table
-    const { error: predictionsError } = await supabase.rpc('exec_sql', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS death_predictions (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id TEXT,
-          death_date TIMESTAMP NOT NULL,
-          cause_of_death TEXT NOT NULL,
-          confidence_percentage DECIMAL(5,2),
-          days_remaining INTEGER,
-          market_id TEXT,
-          risk_factors JSONB DEFAULT '{}',
-          preventable_factor TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-        );
-      `
+    // Execute the complete schema
+    const { error } = await supabase.rpc('exec', {
+      sql: databaseSchema
     });
 
-    if (predictionsError) {
-      console.log('Predictions table might already exist:', predictionsError.message);
-    } else {
-      console.log('✅ Created death_predictions table');
+    if (error) {
+      console.error('Database setup error:', error);
+      throw error;
     }
 
-    // Create death_markets table
-    const { error: marketsError } = await supabase.rpc('exec_sql', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS death_markets (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          prediction_id UUID,
-          algorand_market_id TEXT,
-          total_pool DECIMAL(10,2) DEFAULT 0,
-          bet_count INTEGER DEFAULT 0,
-          odds JSONB DEFAULT '{"before": 2.5, "exact": 50.0, "after": 1.8}',
-          status VARCHAR DEFAULT 'active',
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-        );
-      `
-    });
+    console.log('✅ Database schema created successfully!');
+    
+    // Test the setup by checking if tables exist
+    const { data: tables, error: testError } = await supabase
+      .from('death_predictions')
+      .select('count')
+      .limit(1);
 
-    if (marketsError) {
-      console.log('Markets table might already exist:', marketsError.message);
-    } else {
-      console.log('✅ Created death_markets table');
+    if (testError && testError.code !== 'PGRST116') {
+      throw testError;
     }
 
-    // Create death_bets table
-    const { error: betsError } = await supabase.rpc('exec_sql', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS death_bets (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          market_id UUID,
-          user_id TEXT,
-          bet_type VARCHAR,
-          amount DECIMAL(10,2),
-          potential_payout DECIMAL(10,2),
-          algorand_tx_id TEXT,
-          status VARCHAR DEFAULT 'active',
-          placed_at TIMESTAMPTZ DEFAULT NOW()
-        );
-      `
-    });
-
-    if (betsError) {
-      console.log('Bets table might already exist:', betsError.message);
-    } else {
-      console.log('✅ Created death_bets table');
-    }
-
-    console.log('🎉 Database setup complete!');
-    console.log('📱 Your DeathCast app is now connected to real Supabase database');
+    console.log('✅ Database connection verified!');
+    console.log('🎉 DeathCast is now ready for production use!');
     
   } catch (error) {
     console.error('❌ Database setup failed:', error);
-    console.log('💡 You can manually run the SQL from supabase-schema.sql in your Supabase dashboard');
+    console.log('\n📋 Manual Setup Instructions:');
+    console.log('1. Go to https://supabase.com/dashboard/project/aloinmadrxbjfywagtgg');
+    console.log('2. Click "SQL Editor" → "New Query"');
+    console.log('3. Copy the SQL from supabase-schema.sql');
+    console.log('4. Paste and click "Run"');
   }
 }
 
