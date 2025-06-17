@@ -37,12 +37,34 @@ const handleSupabaseError = (error, operation) => {
   throw new Error(`Database operation failed: ${error.message}`);
 };
 
+// Initialize Supabase with better error handling
+export const initSupabase = async () => {
+  console.log('Supabase initialized for DeathCast');
+
+  try {
+    // Test connection with a simple query
+    const { data, error } = await supabase
+      .from('death_predictions')
+      .select('count')
+      .limit(1);
+      
+    if (error) {
+      console.warn('Database connection test failed:', error.message);
+      console.log('⚠️ Running in demo mode due to database issues');
+    } else {
+      console.log('✅ Supabase connection successful');
+    }
+  } catch (error) {
+    console.warn('Supabase initialization warning:', error.message);
+    console.log('⚠️ Continuing with demo mode');
+  }
+};
+
 // Fixed death prediction creation with UUID validation
 export const createDeathPrediction = async (predictionData) => {
   try {
     // Validate and fix UUIDs
     const fixedData = {
-      ...predictionData,
       id: generateUUID(),
       user_id: validateAndFixUserID(predictionData.userId),
       death_date: predictionData.deathDate,
@@ -168,7 +190,8 @@ export const getLeaderboard = async (limit = 50) => {
       .limit(limit);
 
     if (error) {
-      handleSupabaseError(error, 'get leaderboard');
+      console.warn('Leaderboard query failed:', error.message);
+      return generateDemoLeaderboard();
     }
 
     return data || generateDemoLeaderboard();
@@ -200,5 +223,64 @@ const generateDemoLeaderboard = () => {
   }));
 };
 
-// Export all other functions with fixes applied
+// Enhanced digital legacy functions
+export const saveDigitalLegacy = async (legacyData) => {
+  try {
+    const fixedData = {
+      id: generateUUID(),
+      user_id: validateAndFixUserID(legacyData.userId),
+      last_words: legacyData.lastWords,
+      digital_assets: legacyData.digitalAssets || {},
+      beneficiaries: legacyData.beneficiaries || [],
+      funeral_preferences: legacyData.funeralPreferences || {},
+      voice_recording_url: legacyData.voiceRecordingUrl,
+    };
+
+    const { data, error } = await supabase
+      .from('digital_legacies')
+      .upsert([fixedData])
+      .select()
+      .single();
+
+    if (error) {
+      handleSupabaseError(error, 'save digital legacy');
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Database error, using localStorage fallback:', err);
+    localStorage.setItem(`legacy_${legacyData.userId}`, JSON.stringify(legacyData));
+    return {
+      id: generateUUID(),
+      ...legacyData,
+      created_at: new Date().toISOString()
+    };
+  }
+};
+
+export const getDigitalLegacy = async (userId) => {
+  try {
+    const fixedUserId = validateAndFixUserID(userId);
+    
+    const { data, error } = await supabase
+      .from('digital_legacies')
+      .select('*')
+      .eq('user_id', fixedUserId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.warn('Digital legacy query failed:', error.message);
+      const stored = localStorage.getItem(`legacy_${userId}`);
+      return stored ? JSON.parse(stored) : null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Database error:', err);
+    const stored = localStorage.getItem(`legacy_${userId}`);
+    return stored ? JSON.parse(stored) : null;
+  }
+};
+
+// Export all functions
 export * from './supabase';
