@@ -111,46 +111,87 @@
   font-weight: bold;
 }
 
+/* COUNTDOWN TIMER - CRITICAL SECTION */
 .countdown-section {
-  margin: 10px 0 30px 0;
-  padding: 25px;
+  margin: 30px 0;
+  padding: 30px;
   background: rgba(17, 17, 17, 0.95);
   border-radius: 15px;
-  border: 2px solid #ff0000;
-  box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+  border: 3px solid #ff0000;
+  box-shadow: 0 0 40px rgba(255, 0, 0, 0.4);
   position: relative;
   z-index: 10;
   text-align: center;
   backdrop-filter: blur(5px);
+  animation: pulse-border 3s infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: #ff0000;
+    box-shadow: 0 0 40px rgba(255, 0, 0, 0.4);
+  }
+  50% {
+    border-color: #ff6666;
+    box-shadow: 0 0 60px rgba(255, 0, 0, 0.7);
+  }
 }
 
 .time-left-label {
-  color: #999;
+  color: #ff0000;
   text-align: center;
-  margin-bottom: 20px;
-  font-size: 1rem;
-  letter-spacing: 1px;
+  margin-bottom: 25px;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  font-weight: bold;
+  text-shadow: 0 0 10px #ff0000;
 }
 
 .time-boxes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 15px;
   margin-bottom: 20px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .time-box {
-  background: rgba(17, 17, 17, 0.8);
-  border: 1px solid #333;
-  border-radius: 10px;
-  padding: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 20px 10px;
   text-align: center;
   transition: all 0.3s ease;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.time-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.2), transparent);
+  animation: sweep 3s infinite;
+}
+
+@keyframes sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
 
 .time-box:hover {
   border-color: #ff0000;
-  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+  box-shadow: 0 0 25px rgba(255, 0, 0, 0.4);
+  transform: translateY(-5px);
 }
 
 .time-value {
@@ -158,13 +199,19 @@
   font-size: 2.5rem;
   font-weight: bold;
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  text-shadow: 0 0 15px #fff;
+  position: relative;
+  z-index: 1;
 }
 
 .time-label {
-  color: #666;
-  font-size: 0.9rem;
+  color: #999;
+  font-size: 0.8rem;
   letter-spacing: 1px;
+  font-weight: bold;
+  position: relative;
+  z-index: 1;
 }
 
 .market-section {
@@ -415,6 +462,7 @@
   }
 }
 
+/* Mobile Responsiveness */
 @media (max-width: 768px) {
   .verdict {
     font-size: 1.5rem;
@@ -425,7 +473,8 @@
   }
   
   .time-boxes {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
   }
   
   .time-value {
@@ -440,14 +489,40 @@
     font-size: 2.5rem;
   }
 
-  /* Mobile countdown timer fixes */
   .countdown-section {
-    margin: 10px 0 30px 0 !important;
-    padding: 20px !important;
+    margin: 20px 0;
+    padding: 20px;
   }
 
   .time-boxes {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .time-box {
+    padding: 15px 8px;
+    min-height: 80px;
+  }
+
+  .time-value {
+    font-size: 1.8rem;
+  }
+
+  .time-label {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .time-boxes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .time-value {
+    font-size: 1.5rem;
+  }
+  
+  .time-label {
+    font-size: 0.6rem;
   }
 }

@@ -27,7 +27,14 @@ export default function DeathResultScreen() {
 
   useEffect(() => {
     if (currentPrediction) {
-      const timer = setInterval(calculateTimeRemaining, 1000);
+      // Calculate initial time
+      calculateTimeRemaining();
+      
+      // Set up timer to update every second
+      const timer = setInterval(() => {
+        calculateTimeRemaining();
+      }, 1000);
+      
       return () => clearInterval(timer);
     }
   }, [currentPrediction]);
@@ -45,12 +52,16 @@ export default function DeathResultScreen() {
   };
 
   const calculateTimeRemaining = () => {
-    if (!currentPrediction?.deathDate) return;
+    if (!currentPrediction?.deathDate) {
+      console.warn('No death date available for countdown');
+      return;
+    }
 
     const deathMoment = moment(currentPrediction.deathDate);
     const now = moment();
     const duration = moment.duration(deathMoment.diff(now));
 
+    // If death date has passed, show zeros
     if (duration.asMilliseconds() <= 0) {
       setTimeLeft({
         years: 0,
@@ -58,17 +69,21 @@ export default function DeathResultScreen() {
         hours: 0,
         minutes: 0,
         seconds: 0,
+        total: 0
       });
       return;
     }
 
-    setTimeLeft({
+    const timeRemaining = {
       years: Math.floor(duration.asYears()),
       days: Math.floor(duration.asDays() % 365),
       hours: duration.hours(),
       minutes: duration.minutes(),
       seconds: duration.seconds(),
-    });
+      total: duration.asMilliseconds()
+    };
+
+    setTimeLeft(timeRemaining);
   };
 
   const createMarketplace = async () => {
@@ -491,14 +506,24 @@ export default function DeathResultScreen() {
           </p>
         </div>
 
+        {/* COUNTDOWN TIMER - This is the key section */}
         {timeLeft && (
           <div className="countdown-section">
-            <p className="time-left-label">TIME REMAINING</p>
+            <p className="time-left-label">TIME REMAINING UNTIL DEATH</p>
             <div className="time-boxes">
               <TimeBox value={timeLeft.years} label="YEARS" />
               <TimeBox value={timeLeft.days} label="DAYS" />
               <TimeBox value={timeLeft.hours} label="HOURS" />
               <TimeBox value={timeLeft.minutes} label="MINUTES" />
+              <TimeBox value={timeLeft.seconds} label="SECONDS" />
+            </div>
+            <div style={{ 
+              textAlign: 'center', 
+              marginTop: '15px', 
+              color: '#666',
+              fontSize: '0.9rem'
+            }}>
+              Live countdown to your predicted death date
             </div>
           </div>
         )}
@@ -597,7 +622,7 @@ export default function DeathResultScreen() {
 
 const TimeBox = ({ value, label }) => (
   <div className="time-box">
-    <div className="time-value">{value}</div>
+    <div className="time-value">{value || 0}</div>
     <div className="time-label">{label}</div>
   </div>
 );
