@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDeathContext } from '../context/DeathContext';
 import { lastWordsRecording } from '../lib/elevenlabs';
+import { saveDigitalLegacy, getDigitalLegacy } from '../lib/supabase';
 import './LegacyScreen.css';
 
 export default function LegacyScreen() {
@@ -17,19 +18,29 @@ export default function LegacyScreen() {
   const [beneficiaries, setBeneficiaries] = useState([
     { name: '', email: '', relationship: '' }
   ]);
+  const [funeralPreferences, setFuneralPreferences] = useState({
+    burial: false,
+    cremation: false,
+    donateToScience: false,
+    cryogenicPreservation: false,
+  });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Load existing legacy data on component mount
   useEffect(() => {
     const loadExistingLegacy = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
 
       try {
-        const response = await fetch(`/api/legacy/${user.id}`);
-        if (response.ok) {
-          const legacyData = await response.json();
-          setLastWords(legacyData.lastWords || '');
-          setDigitalAssets(legacyData.digitalAssets || {
+        const legacyData = await getDigitalLegacy(user.id);
+        if (legacyData) {
+          setLastWords(legacyData.last_words || '');
+          setDigitalAssets(legacyData.digital_assets || {
             socialMedia: '',
             photos: '',
             documents: '',
@@ -38,9 +49,18 @@ export default function LegacyScreen() {
           setBeneficiaries(legacyData.beneficiaries || [
             { name: '', email: '', relationship: '' }
           ]);
+          setFuneralPreferences(legacyData.funeral_preferences || {
+            burial: false,
+            cremation: false,
+            donateToScience: false,
+            cryogenicPreservation: false,
+          });
         }
       } catch (error) {
         console.error('Failed to load existing legacy:', error);
+        setError('Failed to load existing legacy data');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -48,57 +68,33 @@ export default function LegacyScreen() {
   }, [user?.id]);
 
   const handleSaveLegacy = async (e) => {
-    e.preventDefault(); // Prevent form submission refresh
+    e.preventDefault();
     setSaving(true);
+    setError(null);
 
     try {
       // Validate required fields
       if (!lastWords.trim()) {
-        // Show error message without alert
-        const errorMessage = document.createElement('div');
-        errorMessage.innerHTML = `
-          <div style="
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 102, 102, 0.95);
-            color: white;
-            padding: 20px 40px;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            z-index: 10000;
-            text-align: center;
-            border: 2px solid #ff6666;
-          ">
-            ⚠️ Last Words Required<br>
-            <small>Please enter your final message in the text area above before saving your legacy.</small>
-          </div>
-        `;
-        document.body.appendChild(errorMessage);
-
-        setTimeout(() => {
-          document.body.removeChild(errorMessage);
-        }, 4000);
-
-        setSaving(false);
-        return;
+        throw new Error('Last words are required');
       }
 
       const validBeneficiaries = beneficiaries.filter(b => b.name && b.email);
       if (validBeneficiaries.length === 0) {
-        alert('Please add at least one beneficiary with name and email.');
-        setSaving(false);
-        return;
+        throw new Error('Please add at least one beneficiary with name and email');
       }
 
       // Record last words
-      await lastWordsRecording({
-        userId: user?.id || 'anonymous',
-        userName: user?.name || 'Anonymous',
-        message: lastWords,
-      });
+      let voiceRecordingUrl = null;
+      try {
+        voiceRecordingUrl = await lastWordsRecording({
+          userId: user?.id || 'anonymous',
+          userName: user?.name || 'Anonymous',
+          message: lastWords,
+        });
+      } catch (voiceError) {
+        console.error('Voice recording failed:', voiceError);
+        // Continue without voice recording
+      }
 
       // Save digital legacy to database
       const legacyData = {
@@ -106,22 +102,13 @@ export default function LegacyScreen() {
         lastWords,
         digitalAssets,
         beneficiaries: validBeneficiaries,
-        createdAt: new Date().toISOString(),
+        funeralPreferences,
+        voiceRecordingUrl,
       };
 
-      const response = await fetch('/api/legacy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(legacyData)
-      });
+      await saveDigitalLegacy(legacyData);
 
-      if (!response.ok) {
-        throw new Error('Failed to save legacy');
-      }
-
-      console.log('Digital legacy saved successfully');
-
-      // Show success message without alert (which can cause refresh)
+      // Show success message
       const successMessage = document.createElement('div');
       successMessage.innerHTML = `
         <div style="
@@ -152,33 +139,7 @@ export default function LegacyScreen() {
 
     } catch (error) {
       console.error('Failed to save legacy:', error);
-
-      // Show error message without alert
-      const errorMessage = document.createElement('div');
-      errorMessage.innerHTML = `
-        <div style="
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: rgba(255, 0, 0, 0.9);
-          color: white;
-          padding: 20px 40px;
-          border-radius: 10px;
-          font-size: 1.2rem;
-          font-weight: bold;
-          z-index: 10000;
-          text-align: center;
-        ">
-          ❌ Failed to Save Legacy<br>
-          <small>Please try again.</small>
-        </div>
-      `;
-      document.body.appendChild(errorMessage);
-
-      setTimeout(() => {
-        document.body.removeChild(errorMessage);
-      }, 3000);
+      setError(error.message);
     } finally {
       setSaving(false);
     }
@@ -198,6 +159,13 @@ export default function LegacyScreen() {
     setBeneficiaries(beneficiaries.filter((_, i) => i !== index));
   };
 
+  const handleFuneralPreferenceChange = (preference) => {
+    setFuneralPreferences(prev => ({
+      ...prev,
+      [preference]: !prev[preference]
+    }));
+  };
+
   if (!currentPrediction) {
     return (
       <div className="legacy-container">
@@ -206,6 +174,17 @@ export default function LegacyScreen() {
           <button onClick={() => navigate('/death-scan')} className="primary-button">
             Get Death Prediction First
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="legacy-container">
+        <div className="loading">
+          <div className="skull-loading">💀</div>
+          <p>Loading digital legacy...</p>
         </div>
       </div>
     );
@@ -223,6 +202,20 @@ export default function LegacyScreen() {
           <h1 className="title">CREATE DIGITAL LEGACY</h1>
           <p className="subtitle">Prepare your final messages and digital inheritance</p>
         </div>
+
+        {error && (
+          <div style={{
+            background: 'rgba(255, 0, 0, 0.1)',
+            border: '1px solid #ff0000',
+            borderRadius: '10px',
+            padding: '15px',
+            marginBottom: '20px',
+            color: '#ff0000',
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        )}
 
         <form className="legacy-form" onSubmit={handleSaveLegacy}>
           <div className="section">
@@ -320,12 +313,14 @@ export default function LegacyScreen() {
                       placeholder="Full Name"
                       value={beneficiary.name}
                       onChange={(e) => updateBeneficiary(index, 'name', e.target.value)}
+                      required
                     />
                     <input
                       type="email"
                       placeholder="Email Address"
                       value={beneficiary.email}
                       onChange={(e) => updateBeneficiary(index, 'email', e.target.value)}
+                      required
                     />
                     <input
                       type="text"
@@ -336,6 +331,7 @@ export default function LegacyScreen() {
                   </div>
                   {beneficiaries.length > 1 && (
                     <button
+                      type="button"
                       className="remove-beneficiary"
                       onClick={() => removeBeneficiary(index)}
                     >
@@ -344,7 +340,7 @@ export default function LegacyScreen() {
                   )}
                 </div>
               ))}
-              <button className="add-beneficiary" onClick={addBeneficiary}>
+              <button type="button" className="add-beneficiary" onClick={addBeneficiary}>
                 + Add Beneficiary
               </button>
             </div>
@@ -354,19 +350,35 @@ export default function LegacyScreen() {
             <h3 className="section-title">⚰️ Funeral Preferences</h3>
             <div className="funeral-options">
               <label className="checkbox-item">
-                <input type="checkbox" />
+                <input 
+                  type="checkbox" 
+                  checked={funeralPreferences.burial}
+                  onChange={() => handleFuneralPreferenceChange('burial')}
+                />
                 <span>Burial</span>
               </label>
               <label className="checkbox-item">
-                <input type="checkbox" />
+                <input 
+                  type="checkbox"
+                  checked={funeralPreferences.cremation}
+                  onChange={() => handleFuneralPreferenceChange('cremation')}
+                />
                 <span>Cremation</span>
               </label>
               <label className="checkbox-item">
-                <input type="checkbox" />
+                <input 
+                  type="checkbox"
+                  checked={funeralPreferences.donateToScience}
+                  onChange={() => handleFuneralPreferenceChange('donateToScience')}
+                />
                 <span>Donate to Science</span>
               </label>
               <label className="checkbox-item">
-                <input type="checkbox" />
+                <input 
+                  type="checkbox"
+                  checked={funeralPreferences.cryogenicPreservation}
+                  onChange={() => handleFuneralPreferenceChange('cryogenicPreservation')}
+                />
                 <span>Cryogenic Preservation</span>
               </label>
             </div>
@@ -381,6 +393,7 @@ export default function LegacyScreen() {
               {saving ? 'SAVING LEGACY...' : 'SAVE DIGITAL LEGACY'}
             </button>
             <button
+              type="button"
               className="secondary-button"
               onClick={() => navigate('/death-result')}
             >

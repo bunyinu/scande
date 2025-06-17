@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://aloinmadrxbjfywagtgg.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsb2lubWFkcnhiamZ5d2FndGdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTk4MDcsImV4cCI6MjA2NTE3NTgwN30.wo8vVWAjcu_6Gen0cEyXOOowrvQs0QQWkVjdm9s1MtU';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -9,6 +13,17 @@ let supabaseChannel = null;
 
 export const initSupabase = async () => {
   console.log('Supabase initialized for DeathCast');
+
+  // Test connection
+  try {
+    const { data, error } = await supabase.from('death_predictions').select('count').limit(1);
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Supabase connection failed: ${error.message}`);
+    }
+  } catch (error) {
+    console.error('Supabase connection test failed:', error);
+    throw error;
+  }
 
   // Only create channel if it doesn't exist
   if (!supabaseChannel) {
@@ -37,38 +52,23 @@ export const initSupabase = async () => {
 
 // Death Predictions
 export const createDeathPrediction = async (predictionData) => {
-  try {
-    const { data, error } = await supabase
-      .from('death_predictions')
-      .insert([{
-        user_id: predictionData.userId,
-        death_date: predictionData.deathDate,
-        cause_of_death: predictionData.cause,
-        confidence_percentage: predictionData.confidence,
-        days_remaining: predictionData.daysRemaining,
-        market_id: predictionData.marketId,
-      }])
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('death_predictions')
+    .insert([{
+      user_id: predictionData.userId,
+      death_date: predictionData.deathDate,
+      cause_of_death: predictionData.cause,
+      confidence_percentage: predictionData.confidence,
+      days_remaining: predictionData.daysRemaining,
+      market_id: predictionData.marketId,
+      risk_factors: predictionData.riskFactors || {},
+      preventable_factor: predictionData.preventableFactor,
+    }])
+    .select()
+    .single();
 
-    if (error) {
-      console.log('Database table might not exist yet, using demo mode:', error.message);
-      // Return mock data for demo
-      return {
-        id: 'demo_' + Date.now(),
-        ...predictionData,
-        created_at: new Date().toISOString()
-      };
-    }
-    return data;
-  } catch (err) {
-    console.log('Using demo mode for predictions:', err.message);
-    return {
-      id: 'demo_' + Date.now(),
-      ...predictionData,
-      created_at: new Date().toISOString()
-    };
-  }
+  if (error) throw new Error(`Failed to create death prediction: ${error.message}`);
+  return data;
 };
 
 export const getDeathPrediction = async (userId) => {
@@ -80,41 +80,28 @@ export const getDeathPrediction = async (userId) => {
     .limit(1)
     .single();
 
-  if (error && error.code !== 'PGRST116') throw error;
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Failed to get death prediction: ${error.message}`);
+  }
   return data;
 };
 
 // Death Markets
 export const createDeathMarket = async (predictionId) => {
-  try {
-    const { data, error } = await supabase
-      .from('death_markets')
-      .insert([{
-        prediction_id: predictionId,
-        total_pool: 0,
-        bet_count: 0,
-        odds: { before: 2.5, exact: 50.0, after: 1.8 },
-        status: 'active'
-      }])
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('death_markets')
+    .insert([{
+      prediction_id: predictionId,
+      total_pool: 0,
+      bet_count: 0,
+      odds: { before: 2.5, exact: 50.0, after: 1.8 },
+      status: 'active'
+    }])
+    .select()
+    .single();
 
-    if (error) {
-      console.log('Database table might not exist yet, using demo mode:', error.message);
-      // Return mock data for demo
-      return {
-        id: 'demo_market_' + Date.now(),
-        prediction_id: predictionId,
-        total_pool: Math.floor(Math.random() * 10000),
-        bet_count: Math.floor(Math.random() * 50),
-        odds: { before: 2.5, exact: 50.0, after: 1.8 },
-        status: 'active'
-      };
-    }
-    return data;
-  } catch (err) {
-    throw new Error(`Failed to create market: ${err.message}`);
-  }
+  if (error) throw new Error(`Failed to create market: ${error.message}`);
+  return data;
 };
 
 export const getMarketData = async (predictionId) => {
@@ -127,7 +114,7 @@ export const getMarketData = async (predictionId) => {
     .eq('prediction_id', predictionId)
     .single();
 
-  if (error) throw error;
+  if (error) throw new Error(`Failed to get market data: ${error.message}`);
   return data;
 };
 
@@ -145,50 +132,30 @@ export const placeBet = async (betData) => {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) throw new Error(`Failed to place bet: ${error.message}`);
 
   // Update market pool
-  await supabase.rpc('update_market_pool', {
+  const { error: updateError } = await supabase.rpc('update_market_pool', {
     market_id: betData.marketId,
     bet_amount: betData.amount
   });
+
+  if (updateError) {
+    console.error('Failed to update market pool:', updateError);
+  }
 
   return data;
 };
 
 export const getBets = async (marketId) => {
-  try {
-    const { data, error } = await supabase
-      .from('death_bets')
-      .select('*')
-      .eq('market_id', marketId)
-      .order('placed_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('death_bets')
+    .select('*')
+    .eq('market_id', marketId)
+    .order('placed_at', { ascending: false });
 
-    if (error) {
-      console.log('Database table might not exist yet, using demo mode:', error.message);
-      // Return demo bets
-      return generateDemoBets();
-    }
-    return data;
-  } catch (err) {
-    console.log('Using demo mode for bets:', err.message);
-    return generateDemoBets();
-  }
-};
-
-const generateDemoBets = () => {
-  const demoUsers = ['DeathSeeker42', 'MortalityFan', 'GrimReaper2024', 'LifeGambler', 'DeathWatcher'];
-  const betTypes = ['before', 'exact', 'after'];
-
-  return Array.from({ length: 8 }, (_, i) => ({
-    id: `demo_bet_${i}`,
-    user_id: demoUsers[Math.floor(Math.random() * demoUsers.length)],
-    bet_type: betTypes[Math.floor(Math.random() * betTypes.length)],
-    amount: Math.floor(Math.random() * 1000) + 50,
-    potential_payout: Math.floor(Math.random() * 2000) + 100,
-    placed_at: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(),
-    status: 'active'
-  }));
+  if (error) throw new Error(`Failed to get bets: ${error.message}`);
+  return data || [];
 };
 
 // Life Extensions
@@ -197,19 +164,22 @@ export const recordLifeExtension = async (extensionData) => {
     .from('life_extensions')
     .insert([{
       user_id: extensionData.userId,
+      prediction_id: extensionData.predictionId,
       original_death_date: extensionData.originalDeathDate,
       new_death_date: extensionData.newDeathDate,
       days_added: extensionData.daysAdded,
       method: extensionData.method,
+      product_id: extensionData.productId,
+      transaction_id: extensionData.transactionId,
     }])
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) throw new Error(`Failed to record life extension: ${error.message}`);
   return data;
 };
 
-// Death Verification (controversial but necessary)
+// Death Verification
 export const verifyDeath = async (verificationData) => {
   const { data, error } = await supabase
     .from('death_verifications')
@@ -218,26 +188,86 @@ export const verifyDeath = async (verificationData) => {
       actual_death_date: verificationData.actualDeathDate,
       verified_by: verificationData.verifiedBy,
       verification_source: verificationData.source,
-      payout_triggered: false,
+      confidence_score: verificationData.confidence || 0.95,
     }])
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) throw new Error(`Failed to verify death: ${error.message}`);
+  return data;
+};
+
+// Digital Legacy
+export const saveDigitalLegacy = async (legacyData) => {
+  const { data, error } = await supabase
+    .from('digital_legacies')
+    .upsert([{
+      user_id: legacyData.userId,
+      last_words: legacyData.lastWords,
+      digital_assets: legacyData.digitalAssets,
+      beneficiaries: legacyData.beneficiaries,
+      funeral_preferences: legacyData.funeralPreferences || {},
+      voice_recording_url: legacyData.voiceRecordingUrl,
+    }])
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to save digital legacy: ${error.message}`);
+  return data;
+};
+
+export const getDigitalLegacy = async (userId) => {
+  const { data, error } = await supabase
+    .from('digital_legacies')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Failed to get digital legacy: ${error.message}`);
+  }
   return data;
 };
 
 // Leaderboard
-export const getLeaderboard = async () => {
+export const getLeaderboard = async (limit = 50) => {
   const { data, error } = await supabase
-    .from('death_predictions')
-    .select(`
-      *,
-      death_markets (total_pool, bet_count)
-    `)
+    .from('death_leaderboard')
+    .select('*')
     .order('confidence_percentage', { ascending: false })
-    .limit(50);
+    .order('total_pool', { ascending: false })
+    .limit(limit);
 
-  if (error) throw error;
+  if (error) throw new Error(`Failed to get leaderboard: ${error.message}`);
+  return data || [];
+};
+
+// User Subscriptions
+export const saveUserSubscription = async (subscriptionData) => {
+  const { data, error } = await supabase
+    .from('user_subscriptions')
+    .upsert([{
+      user_id: subscriptionData.userId,
+      product_id: subscriptionData.productId,
+      subscription_id: subscriptionData.subscriptionId,
+      status: subscriptionData.status,
+      expires_at: subscriptionData.expiresAt,
+      revenue_cat_data: subscriptionData.revenueCatData || {},
+    }])
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to save subscription: ${error.message}`);
   return data;
+};
+
+export const getUserSubscriptions = async (userId) => {
+  const { data, error } = await supabase
+    .from('user_subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'active');
+
+  if (error) throw new Error(`Failed to get user subscriptions: ${error.message}`);
+  return data || [];
 };

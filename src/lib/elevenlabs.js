@@ -2,133 +2,137 @@
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_KEY;
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
 
+if (!ELEVENLABS_API_KEY) {
+  throw new Error('ElevenLabs API key is required. Please set VITE_ELEVENLABS_KEY in your environment variables.');
+}
+
 export const deathVoices = {
   'grim_reaper': {
-    voiceId: 'pNInz6obpgDQGcFmaJgB', // Adam voice - deep and ominous
+    voiceId: 'pNInz6obpgDQGcFmaJgB',
     description: 'Deep, ominous death announcements',
     personality: 'The classic Grim Reaper - dark and foreboding'
   },
   'friendly_death': {
-    voiceId: 'EXAVITQu4vr4xnSDxMaL', // Bella voice - cheerful
+    voiceId: 'EXAVITQu4vr4xnSDxMaL',
     description: 'Cheerful mortality updates',
     personality: 'Upbeat and positive about your demise'
   },
   'philosopher': {
-    voiceId: 'ErXwobaYiN019PkySvjV', // Antoni voice - contemplative
+    voiceId: 'ErXwobaYiN019PkySvjV',
     description: 'Existential death contemplation',
     personality: 'Thoughtful and wise about mortality'
   },
   'game_show_host': {
-    voiceId: 'TxGEqnHWrfWFTfGW9XjX', // Josh voice - energetic
+    voiceId: 'TxGEqnHWrfWFTfGW9XjX',
     description: 'Exciting game show style death announcements',
     personality: 'Enthusiastic host announcing your death like a prize!'
   },
   'news_anchor': {
-    voiceId: 'CYw3kZ02Hs0563khs1Fj', // Emily voice - professional
+    voiceId: 'CYw3kZ02Hs0563khs1Fj',
     description: 'Breaking news style mortality reports',
     personality: 'Professional news reporter covering your death'
   },
   'british_butler': {
-    voiceId: 'onwK4e9ZLuTAKqWW03F9', // Daniel voice - sophisticated
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',
     description: 'Polite and proper death notifications',
     personality: 'Refined British butler announcing your passing'
   },
   'sports_commentator': {
-    voiceId: 'IKne3meq5aSn9XLyUdCD', // Charlie voice - dynamic
+    voiceId: 'IKne3meq5aSn9XLyUdCD',
     description: 'Play-by-play commentary on your death',
     personality: 'Exciting sports announcer calling your final moments'
   },
   'movie_trailer': {
-    voiceId: 'bVMeCyTHy58xNoL34h3p', // Jeremy voice - dramatic
+    voiceId: 'bVMeCyTHy58xNoL34h3p',
     description: 'Epic movie trailer style death reveals',
     personality: 'Dramatic movie trailer narrator for your death'
   },
   'robot_ai': {
-    voiceId: 'flq6f7yk4E4fJM5XTYuZ', // Michael voice - robotic
+    voiceId: 'flq6f7yk4E4fJM5XTYuZ',
     description: 'Cold, calculated AI death analysis',
     personality: 'Emotionless AI calculating your termination'
   },
   'southern_preacher': {
-    voiceId: 'g5CIjZEefAph4nQFvHAz', // Ethan voice - passionate
+    voiceId: 'g5CIjZEefAph4nQFvHAz',
     description: 'Fire and brimstone death sermons',
     personality: 'Passionate preacher warning of your doom'
   },
   'valley_girl': {
-    voiceId: 'XB0fDUnXU5powFXDhCwa', // Charlotte voice - casual
+    voiceId: 'XB0fDUnXU5powFXDhCwa',
     description: 'Casual, trendy death notifications',
     personality: 'Like, totally casual about your death, whatever'
   },
   'pirate_captain': {
-    voiceId: 'SOYHLrjzK2X1ezoPC6cr', // Harry voice - gruff
+    voiceId: 'SOYHLrjzK2X1ezoPC6cr',
     description: 'Swashbuckling death announcements',
     personality: 'Gruff pirate captain announcing your voyage to Davy Jones'
   }
 };
 
 export const initElevenLabs = async () => {
-  if (!ELEVENLABS_API_KEY) {
-    throw new Error('ElevenLabs API key is required');
-  }
-
   console.log('ElevenLabs Voice AI initialized for DeathCast');
 
-  // Test API connection
-  const response = await fetch(`${ELEVENLABS_API_URL}/voices`, {
-    headers: {
-      'xi-api-key': ELEVENLABS_API_KEY,
-    },
-  });
+  try {
+    // Test API connection
+    const response = await fetch(`${ELEVENLABS_API_URL}/voices`, {
+      headers: {
+        'xi-api-key': ELEVENLABS_API_KEY,
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error(`ElevenLabs API connection failed: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`ElevenLabs API connection failed: ${response.status} ${response.statusText}`);
+    }
+
+    console.log('ElevenLabs API connected successfully');
+  } catch (error) {
+    console.error('ElevenLabs initialization failed:', error);
+    throw error;
   }
-
-  console.log('ElevenLabs API connected successfully');
 };
 
 export const generateVoice = async (text, voiceType = 'grim_reaper') => {
-  if (!ELEVENLABS_API_KEY) {
-    throw new Error('ElevenLabs API key is required');
-  }
-
   if (!text || text.trim().length === 0) {
     throw new Error('Text is required for voice generation');
   }
 
   const voice = deathVoices[voiceType];
-
   if (!voice) {
     throw new Error(`Voice type ${voiceType} not found`);
   }
 
-  const response = await fetch(`${ELEVENLABS_API_URL}/text-to-speech/${voice.voiceId}`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'audio/mpeg',
-      'Content-Type': 'application/json',
-      'xi-api-key': ELEVENLABS_API_KEY,
-    },
-    body: JSON.stringify({
-      text: text,
-      model_id: 'eleven_monolingual_v1',
-      voice_settings: {
-        stability: 0.75,
-        similarity_boost: 0.85,
-        style: 0.4,
-        use_speaker_boost: true,
+  try {
+    const response = await fetch(`${ELEVENLABS_API_URL}/text-to-speech/${voice.voiceId}`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'audio/mpeg',
+        'Content-Type': 'application/json',
+        'xi-api-key': ELEVENLABS_API_KEY,
       },
-    }),
-  });
+      body: JSON.stringify({
+        text: text,
+        model_id: 'eleven_monolingual_v1',
+        voice_settings: {
+          stability: 0.75,
+          similarity_boost: 0.85,
+          style: 0.4,
+          use_speaker_boost: true,
+        },
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error(`ElevenLabs API error: ${response.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const audioBlob = await response.blob();
+    return URL.createObjectURL(audioBlob);
+  } catch (error) {
+    console.error('Voice generation failed:', error);
+    throw error;
   }
-
-  const audioBlob = await response.blob();
-  return URL.createObjectURL(audioBlob);
 };
-
-
 
 // Global audio management
 let currentAudio = null;
@@ -149,31 +153,36 @@ export const playAudio = async (audioUrl) => {
   // Stop any currently playing audio
   stopCurrentAudio();
 
-  currentAudio = new Audio(audioUrl);
-  currentAudio.volume = 0.7;
+  try {
+    currentAudio = new Audio(audioUrl);
+    currentAudio.volume = 0.7;
 
-  // Clean up when audio ends
-  currentAudio.addEventListener('ended', () => {
-    currentAudio = null;
-  });
+    // Clean up when audio ends
+    currentAudio.addEventListener('ended', () => {
+      currentAudio = null;
+    });
 
-  await currentAudio.play();
-  return currentAudio;
+    await currentAudio.play();
+    return currentAudio;
+  } catch (error) {
+    console.error('Audio playback failed:', error);
+    throw error;
+  }
 };
 
 export const announceDeathPrediction = async (prediction, voiceType = 'grim_reaper') => {
-  if (!ELEVENLABS_API_KEY) {
-    throw new Error('ElevenLabs API key is required');
-  }
-
   const text = getPersonalizedDeathMessage(prediction, voiceType);
 
   console.log(`🎭 Using ${voiceType} voice: ${deathVoices[voiceType].personality}`);
 
-  const audioUrl = await generateVoice(text, voiceType);
-  await playAudio(audioUrl);
-
-  return { audioUrl, voiceUsed: voiceType };
+  try {
+    const audioUrl = await generateVoice(text, voiceType);
+    await playAudio(audioUrl);
+    return { audioUrl, voiceUsed: voiceType };
+  } catch (error) {
+    console.error('Death announcement failed:', error);
+    throw error;
+  }
 };
 
 const getPersonalizedDeathMessage = (prediction, voiceType) => {
@@ -290,19 +299,19 @@ const getPersonalizedDeathMessage = (prediction, voiceType) => {
 };
 
 export const dailyMortalityReminder = async (user, voiceType = 'grim_reaper') => {
-  if (!ELEVENLABS_API_KEY) {
-    throw new Error('ElevenLabs API key is required');
-  }
-
   const messages = getDailyMessages(user, voiceType);
-  const todaysMessage = messages[0]; // Use first message instead of random
+  const todaysMessage = messages[Math.floor(Math.random() * messages.length)];
 
   console.log(`🌅 Daily reminder using ${voiceType} voice`);
 
-  const audioUrl = await generateVoice(todaysMessage, voiceType);
-  await playAudio(audioUrl);
-
-  return { message: todaysMessage, audioUrl, voiceUsed: voiceType };
+  try {
+    const audioUrl = await generateVoice(todaysMessage, voiceType);
+    await playAudio(audioUrl);
+    return { message: todaysMessage, audioUrl, voiceUsed: voiceType };
+  } catch (error) {
+    console.error('Daily reminder failed:', error);
+    throw error;
+  }
 };
 
 const getDailyMessages = (user, voiceType) => {
@@ -358,14 +367,14 @@ const getDailyMessages = (user, voiceType) => {
     ]
   };
 
-  // Return messages for the voice type, or default to grim_reaper
   return messagesByVoice[voiceType] || messagesByVoice['grim_reaper'];
 };
 
 export const lastWordsRecording = async (lastWords) => {
-  // Premium feature: Record your last words now
-  // Automatically sent to loved ones upon death verification
-  
+  if (!lastWords.message || !lastWords.message.trim()) {
+    throw new Error('Last words message is required');
+  }
+
   const text = `
     These are the last words of ${lastWords.userName}.
     Recorded on ${new Date().toLocaleDateString()}.
@@ -376,10 +385,10 @@ export const lastWordsRecording = async (lastWords) => {
     DeathCast - Predicting mortality since 2024.
   `;
 
-  const audioUrl = await generateVoice(text, 'philosopher');
-  
-  // Store the recording in database for future delivery
-  if (audioUrl) {
+  try {
+    const audioUrl = await generateVoice(text, 'philosopher');
+    
+    // Store the recording for future delivery
     const response = await fetch('/api/last-words', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -394,9 +403,12 @@ export const lastWordsRecording = async (lastWords) => {
     if (!response.ok) {
       throw new Error('Failed to store last words recording');
     }
+    
+    return audioUrl;
+  } catch (error) {
+    console.error('Last words recording failed:', error);
+    throw error;
   }
-  
-  return audioUrl;
 };
 
 export const marketUpdateAnnouncement = async (marketData) => {
@@ -412,12 +424,14 @@ export const marketUpdateAnnouncement = async (marketData) => {
     Place your bets now. Death waits for no one.
   `;
 
-  const audioUrl = await generateVoice(text, 'grim_reaper');
-  if (audioUrl) {
+  try {
+    const audioUrl = await generateVoice(text, 'grim_reaper');
     await playAudio(audioUrl);
+    return audioUrl;
+  } catch (error) {
+    console.error('Market announcement failed:', error);
+    throw error;
   }
-  
-  return audioUrl;
 };
 
 export const lifeExtensionCelebration = async (extension) => {
@@ -431,10 +445,12 @@ export const lifeExtensionCelebration = async (extension) => {
     Thank you for choosing DeathCast Premium.
   `;
 
-  const audioUrl = await generateVoice(text, 'friendly_death');
-  if (audioUrl) {
+  try {
+    const audioUrl = await generateVoice(text, 'friendly_death');
     await playAudio(audioUrl);
+    return audioUrl;
+  } catch (error) {
+    console.error('Life extension celebration failed:', error);
+    throw error;
   }
-  
-  return audioUrl;
 };

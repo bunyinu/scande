@@ -19,6 +19,7 @@ export default function DeathScanScreen() {
   const [hasPermission, setHasPermission] = useState(null);
   const [faceData, setFaceData] = useState(null);
   const [scanDetails, setScanDetails] = useState([]);
+  const [error, setError] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -29,86 +30,106 @@ export default function DeathScanScreen() {
   const requestCameraPermission = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' }
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
       });
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          detectFaceFeatures();
+        };
       }
 
       setHasPermission(true);
-
-      // Initialize face detection after camera is ready
-      setTimeout(() => {
-        detectFaceFeatures();
-      }, 1000);
+      setError(null);
 
     } catch (error) {
       console.error('Camera permission denied:', error);
       setHasPermission(false);
-      // Set basic face data for demo purposes when camera fails
-      setFaceData({
-        smilingProbability: 0.7,
-        leftEyeOpenProbability: 0.9,
-        rightEyeOpenProbability: 0.9,
-        bounds: { x: 100, y: 100, width: 200, height: 200 }
-      });
+      setError('Camera access is required for mortality analysis. Please enable camera permissions and refresh the page.');
     }
   };
 
   const startDeathScan = async () => {
-    startScanning();
-    setScanDetails([]);
-    
-    // Play dramatic heartbeat sound (simulated)
-    await playDramaticSound('heartbeat');
-    
-    // Dramatic scanning animation with detailed steps
-    const scanSteps = [
-      'Analyzing facial health markers...',
-      'Detecting stress patterns...',
-      'Processing genetic indicators...',
-      'Calculating environmental risks...',
-      'Evaluating lifestyle factors...',
-      'Consulting mortality database...',
-      'Finalizing death prediction...'
-    ];
-    
-    let progress = 0;
-    let stepIndex = 0;
-    
-    const interval = setInterval(() => {
-      progress += Math.random() * 15 + 5; // Random progress increments
+    if (!faceData) {
+      setError('No face detected. Please ensure your face is visible in the camera.');
+      return;
+    }
+
+    try {
+      startScanning();
+      setScanDetails([]);
+      setError(null);
       
-      if (progress >= (stepIndex + 1) * (100 / scanSteps.length) && stepIndex < scanSteps.length) {
-        setScanDetails(prev => [...prev, scanSteps[stepIndex]]);
-        stepIndex++;
+      // Play dramatic heartbeat sound
+      try {
+        await playDramaticSound('heartbeat');
+      } catch (soundError) {
+        console.warn('Sound effects not available:', soundError);
       }
       
-      updateScanProgress(Math.min(progress, 100));
+      // Dramatic scanning animation with detailed steps
+      const scanSteps = [
+        'Analyzing facial health markers...',
+        'Detecting stress patterns...',
+        'Processing genetic indicators...',
+        'Calculating environmental risks...',
+        'Evaluating lifestyle factors...',
+        'Consulting mortality database...',
+        'Finalizing death prediction...'
+      ];
       
-      if (progress >= 100) {
-        clearInterval(interval);
-        setTimeout(completeScanning, 1000);
-      }
-    }, 200);
+      let progress = 0;
+      let stepIndex = 0;
+      
+      const interval = setInterval(() => {
+        progress += Math.random() * 15 + 5;
+        
+        if (progress >= (stepIndex + 1) * (100 / scanSteps.length) && stepIndex < scanSteps.length) {
+          setScanDetails(prev => [...prev, scanSteps[stepIndex]]);
+          stepIndex++;
+        }
+        
+        updateScanProgress(Math.min(progress, 100));
+        
+        if (progress >= 100) {
+          clearInterval(interval);
+          setTimeout(completeScanning, 1000);
+        }
+      }, 200);
+    } catch (error) {
+      console.error('Scan initialization failed:', error);
+      setError('Failed to start mortality scan. Please try again.');
+    }
   };
 
   const completeScanning = async () => {
-    // Collect all data for mortality analysis
-    const location = await getCurrentLocation();
-    const healthFactors = await collectHealthData();
-    
-    const mortalityData = await analyzeMortality({
-      face: faceData,
-      location: location,
-      health: healthFactors,
-      lifestyle: await analyzePhoneUsage(),
-      user: user,
-    });
-    
-    setDeathPrediction(mortalityData);
-    navigate('/death-result');
+    try {
+      // Collect all data for mortality analysis
+      const location = await getCurrentLocation();
+      const healthFactors = await collectHealthData();
+      const lifestyle = await analyzePhoneUsage();
+      
+      const mortalityData = await analyzeMortality({
+        face: faceData,
+        location: location,
+        health: healthFactors,
+        lifestyle: lifestyle,
+        user: user,
+      });
+      
+      setDeathPrediction(mortalityData);
+      navigate('/death-result');
+    } catch (error) {
+      console.error('Mortality analysis failed:', error);
+      setError(`Mortality analysis failed: ${error.message}`);
+      // Reset scanning state
+      updateScanProgress(0);
+    }
   };
 
   const getCurrentLocation = async () => {
@@ -119,7 +140,11 @@ export default function DeathScanScreen() {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           }),
-          () => resolve({ latitude: 40.7128, longitude: -74.0060 }) // Default to NYC
+          (error) => {
+            console.warn('Geolocation failed:', error);
+            // Default to a major city if geolocation fails
+            resolve({ latitude: 40.7128, longitude: -74.0060 }); // NYC
+          }
         );
       } else {
         resolve({ latitude: 40.7128, longitude: -74.0060 });
@@ -128,22 +153,7 @@ export default function DeathScanScreen() {
   };
 
   const collectHealthData = async () => {
-    try {
-      // Try to collect real health data from APIs
-      const response = await fetch('/api/health-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id })
-      });
-
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (error) {
-      console.log('Health API not available, using estimated data');
-    }
-
-    // Fallback health data when API is not available
+    // Simulate health data collection
     return {
       heartRate: 70 + Math.random() * 30,
       bloodPressure: {
@@ -158,53 +168,31 @@ export default function DeathScanScreen() {
 
   const detectFaceFeatures = async () => {
     try {
-      // Try to use TensorFlow.js for face detection if available
-      if (window.tf && videoRef.current) {
-        // Basic face detection using video element
-        setFaceData({
-          smilingProbability: 0.6 + Math.random() * 0.4,
-          leftEyeOpenProbability: 0.8 + Math.random() * 0.2,
-          rightEyeOpenProbability: 0.8 + Math.random() * 0.2,
-          bounds: { x: 100, y: 100, width: 200, height: 200 }
-        });
-      } else {
-        // Fallback face data when TensorFlow.js is not available
-        setFaceData({
-          smilingProbability: 0.5,
-          leftEyeOpenProbability: 0.9,
-          rightEyeOpenProbability: 0.9,
-          bounds: { x: 100, y: 100, width: 200, height: 200 }
-        });
-      }
-    } catch (error) {
-      console.error('Face detection failed:', error);
-      // Set default face data on error
+      if (!videoRef.current) return;
+
+      // Basic face detection simulation
+      // In a real implementation, this would use TensorFlow.js or similar
       setFaceData({
-        smilingProbability: 0.5,
-        leftEyeOpenProbability: 0.9,
-        rightEyeOpenProbability: 0.9,
+        smilingProbability: 0.6 + Math.random() * 0.4,
+        leftEyeOpenProbability: 0.8 + Math.random() * 0.2,
+        rightEyeOpenProbability: 0.8 + Math.random() * 0.2,
+        landmarks: {
+          // Simulated facial landmarks
+          nose: { x: 320, y: 240 },
+          leftEye: { x: 280, y: 200 },
+          rightEye: { x: 360, y: 200 },
+          mouth: { x: 320, y: 280 }
+        },
         bounds: { x: 100, y: 100, width: 200, height: 200 }
       });
+    } catch (error) {
+      console.error('Face detection failed:', error);
+      setError('Face detection failed. Please ensure good lighting and try again.');
     }
   };
 
   const analyzePhoneUsage = async () => {
-    try {
-      // Try to get real usage analytics
-      const response = await fetch('/api/usage-analytics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id })
-      });
-
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (error) {
-      console.log('Usage analytics API not available, using estimated data');
-    }
-
-    // Fallback usage data when API is not available
+    // Simulate digital lifestyle analysis
     return {
       screenTime: 4 + Math.random() * 8,
       socialMediaUsage: Math.random() * 6,
@@ -233,6 +221,10 @@ export default function DeathScanScreen() {
         <div className="permission-denied">
           <h2>Camera Access Denied</h2>
           <p>Cannot predict death without facial analysis</p>
+          {error && <p style={{ color: '#ff6666', marginTop: '10px' }}>{error}</p>}
+          <button onClick={requestCameraPermission} className="primary-button">
+            Try Again
+          </button>
           <button onClick={() => navigate('/')} className="secondary-button">
             Return to Home
           </button>
@@ -247,6 +239,24 @@ export default function DeathScanScreen() {
       <div className="bolt-badge">
         <span className="bolt-text">⚡ Built with Bolt.new</span>
       </div>
+
+      {error && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(255, 0, 0, 0.9)',
+          color: 'white',
+          padding: '15px 30px',
+          borderRadius: '10px',
+          zIndex: 1000,
+          maxWidth: '90%',
+          textAlign: 'center'
+        }}>
+          {error}
+        </div>
+      )}
 
       {!isScanning && (
         <div className="camera-section">
